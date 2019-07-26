@@ -187,7 +187,7 @@ void Yolo3DetectorNode::convert_rect_to_image_obj(std::vector< RectClassScore<fl
             else
             {
                 out_class.label_names.push_back("unknown");
-                out_class.labels.push_back(-1);
+                out_class.labels.push_back(255);
             }
         }
         out_class.label_proba.push_back(in_objects[i].score);
@@ -297,7 +297,7 @@ void Yolo3DetectorNode::image_callback(const sensor_msgs::ImageConstPtr& in_imag
         int rects_size = rects.rects.size();
         for(int i=0; i<rects_size; i++)
         {
-            if(class_result.labels[i] == -1)
+            if(class_result.labels[i] == 255)
             {
                 continue;
             }
