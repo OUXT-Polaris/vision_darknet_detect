@@ -175,16 +175,19 @@ void Yolo3DetectorNode::convert_rect_to_image_obj(std::vector< RectClassScore<fl
         if (use_coco_names_)
         {
             out_class.label_names.push_back(in_objects[i].GetClassString());
+            out_class.labels.push_back(in_objects[i].class_type);
         }
         else
         {
             if (in_objects[i].class_type < custom_names_.size())
             {
                 out_class.label_names.push_back(custom_names_[in_objects[i].class_type]);
+                out_class.labels.push_back(in_objects[i].class_type);
             }
             else
             {
                 out_class.label_names.push_back("unknown");
+                out_class.labels.push_back(-1);
             }
         }
         out_class.label_proba.push_back(in_objects[i].score);
@@ -195,23 +198,6 @@ void Yolo3DetectorNode::convert_rect_to_image_obj(std::vector< RectClassScore<fl
         }
     }
 }
-
-/*
-void Yolo3DetectorNode::convert_rect_to_image_obj(std::vector< RectClassScore<float> >& in_objects, autoware_msgs::DetectedObjectArray& out_message)
-{
-    for (unsigned int i = 0; i < in_objects.size(); ++i)
-    {
-        {
-            autoware_msgs::DetectedObject obj;
-
-            obj.valid = true;
-
-            out_message.objects.push_back(obj);
-
-        }
-    }
-}
-*/
 
 void Yolo3DetectorNode::rgbgr_image(image& im)
 {
@@ -279,6 +265,16 @@ image Yolo3DetectorNode::convert_ipl_to_image(const sensor_msgs::ImageConstPtr& 
 
 void Yolo3DetectorNode::image_callback(const sensor_msgs::ImageConstPtr& in_image_message)
 {
+    cv_bridge::CvImagePtr cv_ptr;
+    try
+    {
+        cv_ptr = cv_bridge::toCvCopy(in_image_message, sensor_msgs::image_encodings::BGR8);
+    }
+    catch (cv_bridge::Exception& e)
+    {
+        ROS_ERROR("cv_bridge exception: %s", e.what());
+        return;
+    }
     std::vector< RectClassScore<float> > detections;
 
     darknet_image_ = convert_ipl_to_image(in_image_message);
@@ -286,12 +282,36 @@ void Yolo3DetectorNode::image_callback(const sensor_msgs::ImageConstPtr& in_imag
     detections = yolo_detector_.detect(darknet_image_);
 
     //Prepare Output message
-    //autoware_msgs::DetectedObjectArray output_message;
-    //output_message.header = in_image_message->header;
+    jsk_recognition_msgs::RectArray rects;
+    jsk_recognition_msgs::ClassificationResult class_result;
+    rects.header = in_image_message->header;
+    class_result.header = in_image_message->header;
 
-    //convert_rect_to_image_obj(detections, output_message);
+    convert_rect_to_image_obj(detections, rects, class_result);
 
-    //publisher_objects_.publish(output_message);
+    rect_pub_.publish(rects);
+    class_pub_.publish(class_result);
+
+    if(publish_labeled_image_)
+    {
+        int rects_size = rects.rects.size();
+        for(int i=0; i<rects_size; i++)
+        {
+            if(class_result.labels[i] == -1)
+            {
+                continue;
+            }
+            int x0 = rects.rects[i].x;
+            int y0 = rects.rects[i].y;
+            int x1 = rects.rects[i].x + rects.rects[i].width;
+            int y1 = rects.rects[i].y + rects.rects[i].height;
+            cv::rectangle(cv_ptr->image, {x0, y0}, {x1, y1}, colors_[class_result.labels[i]], 2);
+            int text_y0 = y0 + ((y0 > 30) ? -15 : 15);
+            std::string label = class_result.label_names[i] + ":" + std::to_string(class_result.label_proba[i]*100.0) + "%";
+            cv::putText(cv_ptr->image, label, {x0, text_y0}, cv::FONT_HERSHEY_SIMPLEX, 0.5, colors_[class_result.labels[i]], 1, false);
+        }
+        image_pub_.publish(cv_ptr->toImageMsg());
+    }
 
     free(darknet_image_.data);
 }
@@ -365,6 +385,7 @@ void Yolo3DetectorNode::Run()
     private_node_handle.param<float>("nms_threshold", nms_threshold_, 0.45);
     ROS_INFO("[%s] nms_threshold: %f",__APP_NAME__, nms_threshold_);
 
+    private_node_handle.param<bool>("publish_labeled_image", publish_labeled_image_, false);
 
     ROS_INFO("Initializing Yolo on Darknet...");
     yolo_detector_.load(network_definition_file, pretrained_model_file, score_threshold_, nms_threshold_);
@@ -378,6 +399,7 @@ void Yolo3DetectorNode::Run()
 
     rect_pub_ = private_node_handle.advertise<jsk_recognition_msgs::RectArray>("rect",1);
     class_pub_ = private_node_handle.advertise<jsk_recognition_msgs::ClassificationResult>("class",1);
+    image_pub_ = private_node_handle.advertise<sensor_msgs::Image>("labeled_image",1);
 
     ROS_INFO("Subscribing to... %s", image_raw_topic_str.c_str());
     subscriber_image_raw_ = node_handle_.subscribe(image_raw_topic_str, 1, &Yolo3DetectorNode::image_callback, this);

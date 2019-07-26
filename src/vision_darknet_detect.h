@@ -83,6 +83,7 @@ namespace darknet {
 }  // namespace darknet
 
 class Yolo3DetectorNode {
+    bool publish_labeled_image_;
     ros::Subscriber subscriber_image_raw_;
     ros::Subscriber subscriber_yolo_config_;
     ros::Publisher publisher_objects_;
@@ -111,6 +112,7 @@ class Yolo3DetectorNode {
     std::vector<std::string> read_custom_names_file(const std::string& in_path);
     ros::Publisher rect_pub_;
     ros::Publisher class_pub_;
+    ros::Publisher image_pub_;
 public:
     void Run();
 };

@@ -2,9 +2,9 @@
   <arg name="gpu_device_id" default="0"/>
   <arg name="publish_labeled_image" default="false"/>
 
-  <arg name="network_definition_file" default="$(find vision_darknet_detect)/darknet/cfg/yolov3.cfg"/>
-  <arg name="pretrained_model_file" default="$(find vision_darknet_detect)/darknet/data/yolov3.weights"/>
-  <arg name="names_file" default="$(find vision_darknet_detect)/darknet/cfg/coco.names"/>
+  <arg name="network_definition_file" default="$(find vision_darknet_detect)/darknet/cfg/yolov3-tiny-vrx.cfg"/>
+  <arg name="pretrained_model_file" default="$(find vision_darknet_detect)/darknet/data/yolov3-tiny-vrx_final.weights"/>
+  <arg name="names_file" default="$(find vision_darknet_detect)/darknet/cfg/vrx.names"/>
 
   <arg name="camera_id" default="/"/>
   <arg name="image_src" default="/image_raw"/>
