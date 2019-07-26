@@ -310,8 +310,8 @@ void Yolo3DetectorNode::image_callback(const sensor_msgs::ImageConstPtr& in_imag
             std::string label = class_result.label_names[i] + ":" + std::to_string(class_result.label_proba[i]*100.0) + "%";
             cv::putText(cv_ptr->image, label, {x0, text_y0}, cv::FONT_HERSHEY_SIMPLEX, 0.5, colors_[class_result.labels[i]], 1, false);
         }
-        image_pub_.publish(cv_ptr->toImageMsg());
     }
+    image_pub_.publish(cv_ptr->toImageMsg());
 
     free(darknet_image_.data);
 }
