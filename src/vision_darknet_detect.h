@@ -40,7 +40,7 @@
 
 #include <jsk_recognition_msgs/ClassificationResult.h>
 #include <jsk_recognition_msgs/RectArray.h>
-
+#include <vision_msgs/Detection2DArray.h>
 
 extern "C"
 {
@@ -77,12 +77,11 @@ namespace darknet {
         uint32_t get_network_width();
 
         uint32_t get_network_height();
-
-
     };
 }  // namespace darknet
 
 class Yolo3DetectorNode {
+    bool output_as_vision_msgs_;
     bool publish_labeled_image_;
     ros::Subscriber subscriber_image_raw_;
     ros::Subscriber subscriber_yolo_config_;
@@ -106,6 +105,7 @@ class Yolo3DetectorNode {
 
     void convert_rect_to_image_obj(std::vector< RectClassScore<float> >& in_objects,
         jsk_recognition_msgs::RectArray& out_rect,jsk_recognition_msgs::ClassificationResult& out_class);
+    void convert_rect_to_image_obj(std::vector< RectClassScore<float> >& in_objects,std_msgs::Header header,vision_msgs::Detection2DArray& detections);
     void rgbgr_image(image& im);
     image convert_ipl_to_image(const sensor_msgs::ImageConstPtr& msg);
     void image_callback(const sensor_msgs::ImageConstPtr& in_image_message);
@@ -113,6 +113,7 @@ class Yolo3DetectorNode {
     ros::Publisher rect_pub_;
     ros::Publisher class_pub_;
     ros::Publisher image_pub_;
+    ros::Publisher detection_pub_;
 public:
     void Run();
 };

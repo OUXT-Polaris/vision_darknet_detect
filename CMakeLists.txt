@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
         roscpp
         sensor_msgs
         std_msgs
+        vision_msgs
         )
 
 find_package(CUDA)
@@ -22,6 +23,7 @@ catkin_package(CATKIN_DEPENDS
         roscpp
         sensor_msgs
         std_msgs
+        vision_msgs
         )
 
 set(CMAKE_CXX_FLAGS "-O3 -g -Wall ${CMAKE_CXX_FLAGS}")

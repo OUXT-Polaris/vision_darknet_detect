@@ -143,6 +143,29 @@ namespace darknet
 
 ///////////////////
 
+void Yolo3DetectorNode::convert_rect_to_image_obj(std::vector< RectClassScore<float> >& in_objects,std_msgs::Header header,vision_msgs::Detection2DArray& detections)
+{
+    detections = vision_msgs::Detection2DArray();
+    detections.header = header;
+    for (unsigned int i = 0; i < in_objects.size(); ++i)
+    {
+        vision_msgs::Detection2D detection;
+        vision_msgs::BoundingBox2D bbox;
+        bbox.center.x = (in_objects[i].x/image_ratio_) - image_left_right_border_/image_ratio_ + in_objects[i].w/image_ratio_*0.5;
+        bbox.center.y = (in_objects[i].y/image_ratio_) - image_left_right_border_/image_ratio_ + in_objects[i].h/image_ratio_*0.5;
+        bbox.center.theta = 0;
+        bbox.size_x = in_objects[i].w/image_ratio_;
+        bbox.size_y = in_objects[i].h/image_ratio_;
+        vision_msgs::ObjectHypothesisWithPose hypo;
+        hypo.score = in_objects[i].score;
+        hypo.id = in_objects[i].class_type;
+        detection.results.push_back(hypo);
+        detection.is_tracking = false;
+        detection.header = header;
+        detections.detections.push_back(detection);
+    }
+}
+
 void Yolo3DetectorNode::convert_rect_to_image_obj(std::vector< RectClassScore<float> >& in_objects,
     jsk_recognition_msgs::RectArray& out_rect,jsk_recognition_msgs::ClassificationResult& out_class)
 {
@@ -287,10 +310,18 @@ void Yolo3DetectorNode::image_callback(const sensor_msgs::ImageConstPtr& in_imag
     rects.header = in_image_message->header;
     class_result.header = in_image_message->header;
 
-    convert_rect_to_image_obj(detections, rects, class_result);
-
-    rect_pub_.publish(rects);
-    class_pub_.publish(class_result);
+    if(output_as_vision_msgs_)
+    {
+        vision_msgs::Detection2DArray detections_msg;
+        convert_rect_to_image_obj(detections, in_image_message->header, detections_msg);
+        detection_pub_.publish(detections_msg);
+    }
+    else
+    {
+        convert_rect_to_image_obj(detections, rects, class_result);
+        rect_pub_.publish(rects);
+        class_pub_.publish(class_result);
+    }
 
     if(publish_labeled_image_)
     {
@@ -333,6 +364,8 @@ void Yolo3DetectorNode::Run()
 {
     //ROS STUFF
     ros::NodeHandle private_node_handle("~");//to receive args
+
+    private_node_handle.getParam("output_as_vision_msgs", output_as_vision_msgs_);
 
     //RECEIVE IMAGE TOPIC NAME
     std::string image_raw_topic_str;
@@ -398,7 +431,15 @@ void Yolo3DetectorNode::Run()
     #endif
 
     rect_pub_ = private_node_handle.advertise<jsk_recognition_msgs::RectArray>("rect",1);
-    class_pub_ = private_node_handle.advertise<jsk_recognition_msgs::ClassificationResult>("class",1);
+
+    if(output_as_vision_msgs_)
+    {
+        detection_pub_ = private_node_handle.advertise<vision_msgs::Detection2DArray>("detection",1);
+    }
+    else
+    {
+        class_pub_ = private_node_handle.advertise<jsk_recognition_msgs::ClassificationResult>("class",1);
+    }
     image_pub_ = private_node_handle.advertise<sensor_msgs::Image>("labeled_image",1);
 
     ROS_INFO("Subscribing to... %s", image_raw_topic_str.c_str());
