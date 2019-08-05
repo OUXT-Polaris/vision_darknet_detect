@@ -152,13 +152,14 @@ void Yolo3DetectorNode::convert_rect_to_image_obj(std::vector< RectClassScore<fl
         vision_msgs::Detection2D detection;
         vision_msgs::BoundingBox2D bbox;
         bbox.center.x = (in_objects[i].x/image_ratio_) - image_left_right_border_/image_ratio_ + in_objects[i].w/image_ratio_*0.5;
-        bbox.center.y = (in_objects[i].y/image_ratio_) - image_left_right_border_/image_ratio_ + in_objects[i].h/image_ratio_*0.5;
+        bbox.center.y = (in_objects[i].y/image_ratio_) - image_top_bottom_border_/image_ratio_ + in_objects[i].h/image_ratio_*0.5;
         bbox.center.theta = 0;
         bbox.size_x = in_objects[i].w/image_ratio_;
         bbox.size_y = in_objects[i].h/image_ratio_;
         vision_msgs::ObjectHypothesisWithPose hypo;
         hypo.score = in_objects[i].score;
         hypo.id = in_objects[i].class_type;
+        detection.bbox = bbox;
         detection.results.push_back(hypo);
         detection.is_tracking = false;
         detection.header = header;
