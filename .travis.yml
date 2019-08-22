@@ -21,6 +21,10 @@ env:
     - ROS_DISTRO=kinetic ROS_REPOSITORY_PATH=http://packages.ros.org/ros/ubuntu
     - ROS_DISTRO=melodic ROS_REPOSITORY_PATH=http://packages.ros.org/ros/ubuntu
 install:	
+  - apt install wget
+  - wget https://github.com/Kitware/CMake/releases/download/v3.15.2/cmake-3.15.2.tar.gz
+  - tar xvf cmake-3.15.2.tar.gz
+  - cd cmake-3.15.2 && ./bootstrap && make && make install
   - git clone https://github.com/ros-industrial/industrial_ci.git .ci_config		
 script:		
 - source .ci_config/travis.sh 
