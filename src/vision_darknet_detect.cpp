@@ -27,6 +27,8 @@
 #include "gencolors.cpp"
 #endif
 
+#include <unique_id/unique_id.h>
+
 namespace darknet
 {
     uint32_t Yolo3Detector::get_network_height()
@@ -163,6 +165,7 @@ void Yolo3DetectorNode::convert_rect_to_image_obj(std::vector< RectClassScore<fl
         detection.results.push_back(hypo);
         detection.is_tracking = false;
         detection.header = header;
+        detection.detection_id = unique_id::toMsg(unique_id::fromRandom());
         detections.detections.push_back(detection);
     }
 }
